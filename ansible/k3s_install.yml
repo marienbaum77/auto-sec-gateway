@@ -1,0 +1,25 @@
+---
+- name: Установка K3s на Edge Gateway
+  hosts: edge
+  become: true
+
+  tasks:
+    - name: Установка K3s с помощью официального скрипта
+      shell: |
+        curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--write-kubeconfig-mode 644" sh -
+      args:
+        creates: /usr/local/bin/k3s # Не запускать, если уже стоит
+
+    - name: Ожидание запуска узла (Node)
+      command: k3s kubectl get nodes
+      register: nodes_status
+      until: '" Ready " in nodes_status.stdout'
+      retries: 10
+      delay: 5
+
+    - name: Получение Kubeconfig (паспорт доступа к кластеру)
+      # Мы скопируем конфиг себе на компьютер, чтобы управлять кластером из WSL
+      fetch:
+        src: /etc/rancher/k3s/k3s.yaml
+        dest: ~/.kube/config-remote
+        flat: yes

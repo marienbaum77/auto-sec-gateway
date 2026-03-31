@@ -1,0 +1,46 @@
+---
+- name: Базовая настройка Edge Gateway
+  hosts: edge
+  become: true  # Выполнять команды от имени root (sudo)
+
+  tasks:
+    - name: Обновление списка пакетов и апгрейд системы
+      apt:
+        update_cache: yes
+        upgrade: dist
+        autoremove: yes
+
+    - name: Установка необходимых системных утилит
+      apt:
+        name:
+          - curl
+          - git
+          - htop
+          - ufw
+          - python3-pip
+        state: present
+
+    - name: Тюнинг сетевого ядра Linux (sysctl)
+      # Это то, что делает твой прокси быстрым и устойчивым к нагрузкам
+      sysctl:
+        name: "{{ item.name }}"
+        value: "{{ item.value }}"
+        state: present
+        reload: yes
+      loop:
+        - { name: 'net.core.somaxconn', value: '1024' }       # Увеличиваем очередь соединений
+        - { name: 'net.ipv4.ip_forward', value: '1 ;' }       # ВКЛЮЧАЕМ форвардинг пакетов (КРИТИЧНО для прокси/VPN)
+        - { name: 'fs.file-max', value: '100000' }            # Увеличиваем лимит открытых файлов
+        - { name: 'net.ipv4.tcp_tw_reuse', value: '1' }       # Быстрое переиспользование портов
+
+    - name: Установка Docker (движок для наших приложений)
+      # Мы используем официальный скрипт установки Docker
+      shell: curl -fsSL https://get.docker.com | sh
+      args:
+        creates: /usr/bin/docker  # Не запускать, если Docker уже стоит
+
+    - name: Запуск и включение Docker в автозагрузку
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
