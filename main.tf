@@ -1,6 +1,12 @@
 data "yandex_compute_image" "ubuntu_2404" {
   family = "ubuntu-2404-lts"
 }
+resource "yandex_vpc_address" "static-ip" {
+  name = "edge-static-ip"
+  external_ipv4_address {
+    zone_id = "ru-central1-a"
+  }
+}
 
 # 1. Создаем облачную сеть (VPC)
 resource "yandex_vpc_network" "pro-network" {
@@ -82,6 +88,7 @@ resource "yandex_compute_instance" "edge-gateway" {
   network_interface {
     subnet_id = yandex_vpc_subnet.pro-subnet-a.id
     nat       = true # Даем публичный IP, так как это шлюз
+    nat_ip_address = yandex_vpc_address.static-ip.external_ipv4_address[0].address
     security_group_ids = [yandex_vpc_security_group.edge-sg.id]
 
   }
@@ -92,6 +99,6 @@ resource "yandex_compute_instance" "edge-gateway" {
 }
 
 output "gateway_public_ip" {
-  description = "Публичный IP-адрес нашего шлюза"
-  value       = yandex_compute_instance.edge-gateway.network_interface.0.nat_ip_address
+  description = "Статичный публичный IP нашего шлюза"
+  value       = yandex_vpc_address.static-ip.external_ipv4_address[0].address
 }
