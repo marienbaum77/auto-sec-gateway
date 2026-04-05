@@ -1,0 +1,24 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: pod-config
+  namespace: flux-system
+spec:
+  interval: 1m
+  url: https://gitlab.com/i.rusakov7887/auto-sec-gateway.git
+  ref:
+    branch: main
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: infrastructure
+  namespace: flux-system
+spec:
+  interval: 5m
+  path: "./k8s" # Путь к твоим манифестам
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: pod-config
+  targetNamespace: prod
