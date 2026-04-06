@@ -48,6 +48,13 @@ resource "yandex_vpc_security_group" "edge-sg" {
     v4_cidr_blocks = ["0.0.0.0/0"]
     port           = 443
   }
+  # Разрешаем входящий трафик для Xray (VLESS)
+  ingress {
+    protocol       = "TCP"
+    description    = "Allow Xray Reality"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+    port           = 8443
+  }
     # Разрешаем входящий трафик для API Kubernetes
   ingress {
     protocol       = "TCP"

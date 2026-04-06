@@ -51,3 +51,8 @@ key.json
 *.log
 .DS_Store
 # End of https://www.toptal.com/developers/gitignore/api/ansible,terraform
+
+xray
+*.zip
+*.md
+auto-sec-manager
