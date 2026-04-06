@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: xray
+  namespace: prod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: xray
+  template:
+    metadata:
+      labels:
+        app: xray
+    spec:
+      hostNetwork: true # Даем доступ к портам сервера напрямую
+      containers:
+      - name: xray
+        image: teddysun/xray:latest
+        volumeMounts:
+        - name: config
+          mountPath: /etc/xray
+        ports:
+        - containerPort: 443
+          hostPort: 443
+      volumes:
+      - name: config
+        configMap:
+          name: xray-config
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: xray-config
+  namespace: prod
+data:
+  config.json: |
+    {
+      "inbounds": [{
+        "port": 443,
+        "protocol": "vless",
+        "settings": {
+          "clients": [{"id": "ed6cea55-122f-49bb-9973-8a81c2f33e89", "flow": "xtls-rprx-vision"}],
+          "decryption": "none"
+        },
+        "streamSettings": {
+          "network": "tcp",
+          "security": "reality",
+          "realitySettings": {
+            "show": false,
+            "dest": "google.com:443",
+            "xver": 0,
+            "serverNames": ["google.com"],
+            "privateKey": "OARgwv3Z8yWyW6IZZ-3Zl6fPr8ox2LmXQLwNnXXFkXk",
+            "shortIds": ["abcdef12"]
+          }
+        }
+      }],
+      "outbounds": [{"protocol": "freedom"}]
+    }

@@ -4,3 +4,4 @@ resources:
   - test-app.yaml     # Твой welcome-page (Namespace, Deployment, Service)
   - ingress.yaml      # Твой прокси-шлюз с WAF
   - waf-config.yaml   # Глобальные настройки ModSecurity
+  - xray.yaml         # Деплой Xray (сервер для проксирования трафика)
