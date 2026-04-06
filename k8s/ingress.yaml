@@ -1,19 +1,31 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: argocd-server-ingress
-  namespace: argocd
+  name: welcome-ingress
+  namespace: prod
   annotations:
-    kubernetes.io/ingress.class: nginx
-    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    nginx.ingress.kubernetes.io/enable-modsecurity: "true"
+    nginx.ingress.kubernetes.io/modsecurity-transaction-id: "$request_id"
+    nginx.ingress.kubernetes.io/modsecurity-snippet: |
+      SecRuleEngine On
 spec:
+  ingressClassName: nginx
   rules:
   - http:
       paths:
-      - path: /argocd
+      # Правило для подписок (ставим выше или просто в список)
+      - path: /sub
         pathType: Prefix
         backend:
           service:
-            name: argocd-server
+            name: manager-service # Тот самый сервис из manager.yaml
             port:
-              number: 443
+              number: 80
+      # Правило для заглушки (Welcome page)
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: welcome-service
+            port:
+              number: 80
