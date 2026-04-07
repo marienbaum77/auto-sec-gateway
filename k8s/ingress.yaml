@@ -6,22 +6,18 @@ metadata:
   annotations:
     nginx.ingress.kubernetes.io/enable-modsecurity: "true"
     nginx.ingress.kubernetes.io/modsecurity-transaction-id: "$request_id"
-    nginx.ingress.kubernetes.io/modsecurity-snippet: |
-      SecRuleEngine On
 spec:
   ingressClassName: nginx
   rules:
   - http:
       paths:
-      # Правило для подписок (ставим выше или просто в список)
       - path: /sub
         pathType: Prefix
         backend:
           service:
-            name: manager-service # Тот самый сервис из manager.yaml
+            name: manager-service
             port:
               number: 80
-      # Правило для заглушки (Welcome page)
       - path: /
         pathType: Prefix
         backend:

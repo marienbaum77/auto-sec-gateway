@@ -6,4 +6,5 @@ metadata:
 data:
   enable-modsecurity: "true"
   enable-owasp-modsecurity-crs: "true"
-  allow-snippet-annotations: "true"
+  modsecurity-snippet: |
+    SecRuleEngine On
