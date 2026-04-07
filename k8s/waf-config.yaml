@@ -6,3 +6,4 @@ metadata:
 data:
   enable-modsecurity: "true"
   enable-owasp-modsecurity-crs: "true"
+  allow-snippet-annotations: "true"
