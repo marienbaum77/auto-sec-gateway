@@ -6,5 +6,10 @@ metadata:
 data:
   enable-modsecurity: "true"
   enable-owasp-modsecurity-crs: "true"
-  modsecurity-snippet: |
-    SecRuleEngine On
+  # Используем http-snippet как самый приоритетный
+  http-snippet: |
+    modsecurity_rules "
+      SecRuleEngine On
+      SecAuditEngine RelevantOnly
+      SecAuditLog /var/log/nginx/modsec_audit.log
+    ";
