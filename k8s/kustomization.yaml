@@ -1,9 +1,9 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - test-app.yaml     # Твой welcome-page (Namespace, Deployment, Service)
   - ingress.yaml      # Твой прокси-шлюз с WAF
   - waf-config.yaml   # Глобальные настройки ModSecurity
   - xray.yaml         # Деплой Xray (сервер для проксирования трафика)
   - manager.yaml      # Деплой твоей программы на Go (менеджер)
   - postgres.yaml     # Деплой PostgreSQL для хранения данных
+  - manager-config.yaml # ConfigMap с настройками для менеджера

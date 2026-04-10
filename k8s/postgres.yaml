@@ -37,11 +37,20 @@ spec:
               cpu: "200m"
         env:
         - name: POSTGRES_USER
-          value: "manager"
-        - name: POSTGRES_PASSWORD
-          value: "mypassword"
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: POSTGRES_USER
         - name: POSTGRES_DB
-          value: "manager"
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: POSTGRES_DB
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: postgres-password
         ports:
         - containerPort: 5432
         volumeMounts:

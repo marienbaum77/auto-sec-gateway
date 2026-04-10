@@ -18,10 +18,3 @@ spec:
             name: manager-service
             port:
               number: 80
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: welcome-service
-            port:
-              number: 80
