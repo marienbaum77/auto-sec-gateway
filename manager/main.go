@@ -1,23 +1,29 @@
 package main
 
 import (
-	"encoding/base64"
-	"fmt"
+	"context"
 	"log"
 	"os"
+	"strconv"
+	"sync/atomic"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/igor/auto-sec-manager/internal/api"
+	"github.com/igor/auto-sec-manager/internal/bot"
 	"github.com/igor/auto-sec-manager/internal/checker"
+	k8sync "github.com/igor/auto-sec-manager/internal/k8s"
 	"github.com/igor/auto-sec-manager/internal/model"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"k8s.io/client-go/rest"
 )
 
 var (
-	db         *gorm.DB
-	node       = &model.Node{ID: "yandex-node-1", Port: 8443, Status: "Init", IsAlive: false}
-	publicAddr string
+	db        *gorm.DB
+	publicIP  string
+	xrayPort  int
+	nodeAlive atomic.Bool
 )
 
 func initDB() {
@@ -36,26 +42,11 @@ func initDB() {
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}
+}
 
+func migrateUsers() {
 	if err := db.AutoMigrate(&model.User{}); err != nil {
-		log.Fatal("Failed to migrate database:", err)
-	}
-
-	var count int64
-	if err := db.Model(&model.User{}).Count(&count).Error; err != nil {
-		log.Fatal("Failed to count users:", err)
-	}
-
-	if count == 0 {
-		if err := db.Create(&model.User{
-			Username: "admin",
-			UUID:     "99c0b456-bd47-46d9-81a8-fc2920a7548a",
-			Token:    "my-secret-token",
-			Active:   true,
-		}).Error; err != nil {
-			log.Fatal("Failed to create test user:", err)
-		}
-		log.Println("Test user created: admin")
+		log.Fatal("Failed to migrate users table:", err)
 	}
 }
 
@@ -66,52 +57,86 @@ func getEnv(key, fallback string) string {
 	return fallback
 }
 
-func monitorNode() {
+func monitorNode(adminID int64, tgBot *bot.Service) {
 	target := getEnv("XRAY_ADDR", "127.0.0.1:8443")
+	notifiedDown := false
+
 	for {
-		latency, err := checker.CheckPort(target, 5*time.Second)
+		_, err := checker.CheckPort(target, 5*time.Second)
 		if err != nil {
-			node.IsAlive = false
-			node.Status = "Blocked"
+			nodeAlive.Store(false)
+			if !notifiedDown && tgBot != nil && adminID != 0 {
+				if notifyErr := tgBot.NotifyAdmin(adminID, "Xray node is unavailable: "+err.Error()); notifyErr != nil {
+					log.Printf("failed to notify admin: %v", notifyErr)
+				} else {
+					notifiedDown = true
+				}
+			}
 		} else {
-			node.IsAlive = true
-			node.Status = "Healthy"
-			_ = latency // можно логировать
+			nodeAlive.Store(true)
+			notifiedDown = false
 		}
 		time.Sleep(15 * time.Second)
 	}
 }
 
-func handleSub(c *gin.Context) {
-	token := c.Param("token")
-	var user model.User
-
-	if err := db.Where("token = ? AND active = ?", token, true).First(&user).Error; err != nil {
-		c.String(404, "Invalid or inactive subscription")
-		return
+func getEnvInt(key string, fallback int) int {
+	raw := getEnv(key, "")
+	if raw == "" {
+		return fallback
 	}
-
-	if !node.IsAlive {
-		c.String(200, "")
-		return
+	value, err := strconv.Atoi(raw)
+	if err != nil {
+		return fallback
 	}
-
-	vlessURL := fmt.Sprintf(
-		"vless://%s@%s:%d?security=reality&sni=dl.google.com&fp=chrome&pbk=rgKtm9CVStTQUs7MfGmIdj6BAKaSwpjEReVrxNLspU8&sid=abcdef12&type=tcp&flow=xtls-rprx-vision#Sovereign-%s",
-		user.UUID, publicAddr, node.Port, user.Username,
-	)
-
-	encoded := base64.StdEncoding.EncodeToString([]byte(vlessURL + "\n"))
-	c.String(200, encoded)
+	return value
 }
 
 func main() {
-	publicAddr = getEnv("PUBLIC_IP", "158.160.40.150")
-	
+	publicIP = getEnv("PUBLIC_IP", "158.160.40.150")
+	xrayPort = getEnvInt("XRAY_PORT", 8443)
+
 	initDB()
-	go monitorNode()
+	migrateUsers()
+
+	xrayPublicKey := getEnv("XRAY_PUBLIC_KEY", "")
+	xrayPrivateKey := getEnv("XRAY_PRIVATE_KEY", "")
+
+	tgToken := os.Getenv("TELEGRAM_TOKEN")
+	adminID := int64(getEnvInt("ADMIN_ID", 0))
+
+	var tgBot *bot.Service
+	var err error
+	if tgToken != "" {
+		tgBot, err = bot.New(
+			tgToken,
+			db,
+			publicIP,
+			func(ctx context.Context) error {
+				return k8sync.SyncXrayConfig(ctx, db)
+			},
+		)
+		if err != nil {
+			log.Fatalf("failed to initialize telegram bot: %v", err)
+		}
+		go tgBot.Start()
+	} else {
+		log.Println("TELEGRAM_TOKEN is empty, bot is disabled")
+	}
+
+	if _, err := rest.InClusterConfig(); err != nil {
+		log.Printf("kubernetes in-cluster config unavailable: %v", err)
+	}
+
+	if err := k8sync.SyncXrayConfig(context.Background(), db); err != nil {
+		log.Printf("initial Xray sync failed: %v", err)
+	}
+
+	go monitorNode(adminID, tgBot)
 
 	r := gin.Default()
-	r.GET("/sub/:token", handleSub)
+	apiServer := api.NewServer(db, publicIP, xrayPublicKey, xrayPrivateKey, xrayPort, &nodeAlive)
+	apiServer.Register(r)
+
 	r.Run(":8080")
 }

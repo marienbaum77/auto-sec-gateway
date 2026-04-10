@@ -1,12 +1,11 @@
 package model
 
-import "gorm.io/gorm"
-
-// User — класс пользователя системы (для UML)
+// User represents a subscription client.
 type User struct {
-	gorm.Model
-	Username string `gorm:"uniqueIndex"` // Имя пользователя
-	UUID     string // Его личный ключ в Xray
-	Token    string `gorm:"uniqueIndex"`  // Его токен для ссылки подписки
-	Active   bool   `gorm:"default:true"` // Статус доступа
+	ID         uint   `gorm:"primaryKey"`
+	TelegramID int64  `gorm:"not null;uniqueIndex"`
+	Username   string `gorm:"not null"`
+	UUID       string `gorm:"not null;uniqueIndex"`
+	Token      string `gorm:"not null;uniqueIndex"`
+	Active     bool   `gorm:"not null;default:true"`
 }
