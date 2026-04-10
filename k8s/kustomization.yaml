@@ -6,3 +6,4 @@ resources:
   - waf-config.yaml   # Глобальные настройки ModSecurity
   - xray.yaml         # Деплой Xray (сервер для проксирования трафика)
   - manager.yaml      # Деплой твоей программы на Go (менеджер)
+  - postgres.yaml     # Деплой PostgreSQL для хранения данных

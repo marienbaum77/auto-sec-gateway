@@ -5,7 +5,6 @@ import "time"
 // Node представляет твой прокси-узел
 type Node struct {
 	ID       string
-	Address  string
 	Port     int
 	Status   string // "Healthy", "Degraded", "Blocked"
 	IsAlive  bool   // Флаг живости узла
