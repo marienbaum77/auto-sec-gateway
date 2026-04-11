@@ -58,6 +58,17 @@ spec:
         ports:
         - containerPort: 8080
         env:
+        # 1. Достаем пароль из секрета (он не светится в Git)
+        - name: DB_PASS_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: postgres-password
+        
+        # 2. Собираем строку, которую ждет твой main.go
+        - name: DATABASE_URL
+          value: "host=postgres-service.prod.svc user=manager password=$(DB_PASS_SECRET) dbname=manager port=5432 sslmode=disable"
+
         - name: DB_HOST
           value: "postgres-service.prod.svc" # Это не секрет, можно оставить здесь
         - name: DB_USER
@@ -70,11 +81,6 @@ spec:
             configMapKeyRef:
               name: app-config
               key: POSTGRES_DB
-        - name: DB_PASSWORD # А это секрет!
-          valueFrom:
-            secretKeyRef:
-              name: app-secrets
-              key: postgres-password
         - name: TELEGRAM_TOKEN
           valueFrom:
             secretKeyRef:
