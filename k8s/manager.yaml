@@ -51,6 +51,7 @@ spec:
         app: manager
     spec:
       hostNetwork: true # Нужно, чтобы достучаться до 127.0.0.1:8443 (Xray)
+      dnsPolicy: ClusterFirstWithHostNet
       serviceAccountName: manager-sa
       containers:
       - name: manager
