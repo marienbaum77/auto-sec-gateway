@@ -1,10 +1,16 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"encoding/base64"
+	"encoding/json"
+	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -20,11 +26,83 @@ import (
 )
 
 var (
-	db        *gorm.DB
-	publicIP  string
-	xrayPort  int
-	nodeAlive atomic.Bool
+	db            *gorm.DB
+	publicIP      string
+	xrayPort      int
+	xrayPublicKey string
+	shortID       string
+	nodeAlive     atomic.Bool
 )
+
+const gistFileName = "subscription.txt"
+
+// UpdateGist writes Base64-encoded newline-separated VLESS URLs of all active users to a GitHub Gist.
+// Requires GITHUB_TOKEN and GIST_ID. Patches file subscription.txt in the gist.
+func UpdateGist() {
+	token := os.Getenv("GITHUB_TOKEN")
+	gistID := os.Getenv("GIST_ID")
+	if token == "" || gistID == "" {
+		return
+	}
+
+	var users []model.User
+	if err := db.Where("active = ?", true).Order("id").Find(&users).Error; err != nil {
+		log.Printf("UpdateGist: load users: %v", err)
+		return
+	}
+
+	lines := make([]string, 0, len(users))
+	for _, u := range users {
+		line := fmt.Sprintf(
+			"vless://%s@%s:%d?security=reality&sni=dl.google.com&fp=chrome&pbk=%s&sid=%s&type=tcp&flow=xtls-rprx-vision#Sovereign-%s",
+			u.UUID, publicIP, xrayPort, xrayPublicKey, shortID, u.Username,
+		)
+		lines = append(lines, line)
+	}
+	combined := strings.Join(lines, "\n")
+	encoded := base64.StdEncoding.EncodeToString([]byte(combined))
+
+	body := map[string]any{
+		"files": map[string]any{
+			gistFileName: map[string]string{"content": encoded},
+		},
+	}
+	payload, err := json.Marshal(body)
+	if err != nil {
+		log.Printf("UpdateGist: marshal request: %v", err)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	url := fmt.Sprintf("https://api.github.com/gists/%s", gistID)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPatch, url, bytes.NewReader(payload))
+	if err != nil {
+		log.Printf("UpdateGist: build request: %v", err)
+		return
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Accept", "application/vnd.github+json")
+	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Printf("UpdateGist: request: %v", err)
+		return
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		log.Printf("UpdateGist: GitHub API returned %s", resp.Status)
+	}
+}
+
+func syncXrayAndUpdateGist(ctx context.Context) error {
+	err := k8sync.SyncXrayConfig(ctx, db)
+	UpdateGist()
+	return err
+}
 
 func initDB() {
 	dsn := getEnv("DATABASE_URL", "host=localhost user=manager password=mypassword dbname=manager port=5432 sslmode=disable")
@@ -99,8 +177,8 @@ func main() {
 	initDB()
 	migrateUsers()
 
-	xrayPublicKey := getEnv("XRAY_PUBLIC_KEY", "")
-	xrayPrivateKey := getEnv("XRAY_PRIVATE_KEY", "")
+	xrayPublicKey = getEnv("XRAY_PUBLIC_KEY", "")
+	shortID = getEnv("SHORT_ID", "abcdef12")
 
 	tgToken := os.Getenv("TELEGRAM_TOKEN")
 	adminID := int64(getEnvInt("ADMIN_ID", 0))
@@ -112,9 +190,7 @@ func main() {
 			tgToken,
 			db,
 			publicIP,
-			func(ctx context.Context) error {
-				return k8sync.SyncXrayConfig(ctx, db)
-			},
+			syncXrayAndUpdateGist,
 		)
 		if err != nil {
 			log.Fatalf("failed to initialize telegram bot: %v", err)
@@ -128,14 +204,14 @@ func main() {
 		log.Printf("kubernetes in-cluster config unavailable: %v", err)
 	}
 
-	if err := k8sync.SyncXrayConfig(context.Background(), db); err != nil {
+	if err := syncXrayAndUpdateGist(context.Background()); err != nil {
 		log.Printf("initial Xray sync failed: %v", err)
 	}
 
 	go monitorNode(adminID, tgBot)
 
 	r := gin.Default()
-	apiServer := api.NewServer(db, publicIP, xrayPublicKey, xrayPrivateKey, xrayPort, &nodeAlive)
+	apiServer := api.NewServer(db, publicIP, xrayPublicKey, shortID, xrayPort, &nodeAlive)
 	apiServer.Register(r)
 
 	r.Run(":8080")

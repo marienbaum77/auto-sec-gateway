@@ -2,7 +2,6 @@ package bot
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 
@@ -55,12 +54,12 @@ func (s *Service) registerHandlers() {
 		}
 
 		var user model.User
-		err := s.db.Where("telegram_id = ?", userInfo.ID).First(&user).Error
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		res := s.db.Where("telegram_id = ?", userInfo.ID).Limit(1).Find(&user)
+		if res.Error != nil {
 			return c.Send("Internal error. Please try again later.")
 		}
 
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if res.RowsAffected == 0 {
 			username := userInfo.Username
 			if username == "" {
 				username = fmt.Sprintf("tg-%d", userInfo.ID)

@@ -11,22 +11,22 @@ import (
 )
 
 type Server struct {
-	db             *gorm.DB
-	publicIP       string
-	xrayPublicKey  string
-	xrayPrivateKey string
-	xrayPort       int
-	nodeAlive      *atomic.Bool
+	db            *gorm.DB
+	publicIP      string
+	xrayPublicKey string
+	shortID       string
+	xrayPort      int
+	nodeAlive     *atomic.Bool
 }
 
-func NewServer(db *gorm.DB, publicIP, xrayPublicKey, xrayPrivateKey string, xrayPort int, nodeAlive *atomic.Bool) *Server {
+func NewServer(db *gorm.DB, publicIP, xrayPublicKey, shortID string, xrayPort int, nodeAlive *atomic.Bool) *Server {
 	return &Server{
-		db:             db,
-		publicIP:       publicIP,
-		xrayPublicKey:  xrayPublicKey,
-		xrayPrivateKey: xrayPrivateKey,
-		xrayPort:       xrayPort,
-		nodeAlive:      nodeAlive,
+		db:            db,
+		publicIP:      publicIP,
+		xrayPublicKey: xrayPublicKey,
+		shortID:       shortID,
+		xrayPort:      xrayPort,
+		nodeAlive:     nodeAlive,
 	}
 }
 
@@ -50,7 +50,7 @@ func (s *Server) handleSub(c *gin.Context) {
 
 	vlessURL := fmt.Sprintf(
 		"vless://%s@%s:%d?security=reality&sni=dl.google.com&fp=chrome&pbk=%s&sid=%s&type=tcp&flow=xtls-rprx-vision#Sovereign-%s",
-		user.UUID, s.publicIP, s.xrayPort, s.xrayPublicKey, s.xrayPrivateKey, user.Username,
+		user.UUID, s.publicIP, s.xrayPort, s.xrayPublicKey, s.shortID, user.Username,
 	)
 
 	c.String(http.StatusOK, vlessURL)
