@@ -55,7 +55,7 @@ spec:
       serviceAccountName: manager-sa
       containers:
       - name: manager
-        image: registry.gitlab.com/i.rusakov7887/auto-sec-gateway/manager:8a5db63-1776168831
+        image: registry.gitlab.com/i.rusakov7887/auto-sec-gateway/manager:53669b6-1776171708
         ports:
         - containerPort: 8080
         env:
