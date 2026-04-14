@@ -3,6 +3,8 @@ kind: ConfigMap
 metadata:
   name: xray-config
   namespace: prod
+  annotations:
+    kustomize.toolkit.fluxcd.io/reconcile: disabled
 data:
   config.json: |
     {
