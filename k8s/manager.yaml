@@ -55,7 +55,7 @@ spec:
       serviceAccountName: manager-sa
       containers:
       - name: manager
-        image: registry.gitlab.com/i.rusakov7887/auto-sec-gateway/manager:ac570d7-1776167709
+        image: registry.gitlab.com/i.rusakov7887/auto-sec-gateway/manager:4b0376d-1776168223
         ports:
         - containerPort: 8080
         env:
@@ -104,6 +104,11 @@ spec:
             configMapKeyRef:
               name: app-config
               key: XRAY_ADDR
+        - name: XRAY_SERVER_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: XRAY_SERVER_NAME
         # Выносим ключи Xray в переменные окружения
         - name: XRAY_UUID
           valueFrom:
