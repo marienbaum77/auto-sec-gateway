@@ -55,7 +55,7 @@ spec:
       serviceAccountName: manager-sa
       containers:
       - name: manager
-        image: registry.gitlab.com/i.rusakov7887/auto-sec-gateway/manager:604ef7e-1776167485
+        image: registry.gitlab.com/i.rusakov7887/auto-sec-gateway/manager:ac570d7-1776167709
         ports:
         - containerPort: 8080
         env:
@@ -86,7 +86,7 @@ spec:
               name: telegram-secret
               key: TELEGRAM_TOKEN
         - name: SUBSCRIPTION_BASE_URL
-          value: "http://api.158.160.40.150"
+          value: "http://158.160.40.150"
         - name: SHORT_ID
           value: "abcdef12" # Это можно оставить открытым
         - name: ADMIN_ID
