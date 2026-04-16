@@ -20,7 +20,6 @@ spec:
     spec:
       hostNetwork: true # Нужно, чтобы достучаться до 127.0.0.1:8443 (Xray)
       dnsPolicy: ClusterFirstWithHostNet
-      serviceAccountName: manager-sa
       containers:
       - name: manager
         image: registry.gitlab.com/i.rusakov7887/auto-sec-gateway/manager:2c9f6bb-1776367809
