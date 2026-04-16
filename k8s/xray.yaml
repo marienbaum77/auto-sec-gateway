@@ -3,33 +3,55 @@ kind: ConfigMap
 metadata:
   name: xray-config
   namespace: prod
-  annotations:
-    kustomize.toolkit.fluxcd.io/reconcile: disabled
+  # Аннотация disabled удалена, Flux снова управляет файлом
 data:
   config.json: |
     {
       "log": {"loglevel": "debug"},
-      "inbounds": [{
-        "port": 8443, 
-        "protocol": "vless",
-        "settings": {
-          "clients": [{"id": "99c0b456-bd47-46d9-81a8-fc2920a7548a", "flow": "xtls-rprx-vision"}],
-          "decryption": "none"
-        },
-        "streamSettings": {
-          "network": "tcp",
-          "security": "reality",
-          "realitySettings": {
-            "show": false,
-            "dest": "www.microsoft.com:443",
-            "xver": 0,
-            "serverNames": ["www.microsoft.com"],
-            "privateKey": "oCyvun1LfZPdMiHz-wTEoKfo5zk7u_FfOyeVztfQFUQ",
-            "shortIds": ["abcdef12"]
+      "api": {
+        "services": ["HandlerService"],
+        "tag": "api"
+      },
+      "inbounds":[
+        {
+          "port": 8443, 
+          "protocol": "vless",
+          "tag": "proxy-in",
+          "settings": {
+            "clients": [],
+            "decryption": "none"
+          },
+          "streamSettings": {
+            "network": "tcp",
+            "security": "reality",
+            "realitySettings": {
+              "show": false,
+              "dest": "www.microsoft.com:443",
+              "xver": 0,
+              "serverNames": ["www.microsoft.com"],
+              "privateKey": "oCyvun1LfZPdMiHz-wTEoKfo5zk7u_FfOyeVztfQFUQ",
+              "shortIds": ["abcdef12"]
+            }
           }
+        },
+        {
+          "listen": "127.0.0.1",
+          "port": 10085,
+          "protocol": "dokodemo-door",
+          "settings": {"address": "127.0.0.1"},
+          "tag": "api-in"
         }
-      }],
-      "outbounds": [{"protocol": "freedom"}]
+      ],
+      "routing": {
+        "rules":[
+          {
+            "inboundTag": ["api-in"],
+            "outboundTag": "api",
+            "type": "field"
+          }
+        ]
+      },
+      "outbounds":[{"protocol": "freedom"}]
     }
 ---
 apiVersion: apps/v1
