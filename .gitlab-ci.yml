@@ -31,16 +31,11 @@ update-k8s-manifest:
     # Настройка git для пуша от имени системы
     - git config --global user.email "ci-bot@gitlab.com"
     - git config --global user.name "GitLab CI Bot"
-  script:
-    - sed -i "s|image: $CI_REGISTRY_IMAGE/manager:.*|image: $IMAGE_NAME:$IMAGE_TAG|g" k8s/manager.yaml
-    
-    # Пушим изменения обратно в репозиторий
-    - git add k8s/manager.yaml
-    # [skip ci] нужен, чтобы не вызвать бесконечный цикл запусков пайплайна
-    - git commit -m "chore(ci):update manager image to $IMAGE_TAG [skip ci]"
-    
-    # Используем созданный ранее токен для пуша
-    - git push https://oauth2:${CI_PUSH_TOKEN}@gitlab.com/${CI_PROJECT_PATH}.git HEAD:main
+  script: |
+      sed -i "s|image: $CI_REGISTRY_IMAGE/manager:.*|image: $IMAGE_NAME:$IMAGE_TAG|g" k8s/manager.yaml
+      git add k8s/manager.yaml
+      git commit -m "chore(ci):update manager image to $IMAGE_TAG [skip ci]"
+      git push https://oauth2:${CI_PUSH_TOKEN}@gitlab.com/${CI_PROJECT_PATH}.git HEAD:main
   only:
     - main
   needs:
