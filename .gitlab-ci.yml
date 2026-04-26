@@ -3,39 +3,42 @@ stages:
   - update-manifest
 
 variables:
-  # Путь к образу в твоем реестре
   IMAGE_NAME: $CI_REGISTRY_IMAGE/manager
-  # Уникальный тег на основе короткого хэша коммита
   IMAGE_TAG: $CI_COMMIT_SHORT_SHA
 
-# --- ЭТАП 1: СБОРКА И ПУШ ОБРАЗА ---
+# --- ЭТАП 1: СБОРКА И ПУШ ---
 build-manager:
   stage: build
-  image: docker:24.0.5 # Используем Docker для сборки
-  services:
-    - docker:24.0.5-dind
+  tags:
+    - local-wsl # Указываем GitLab'у отправить эту задачу на твой ПК
   script:
+    - echo "Авторизация в реестре..."
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - echo "Сборка Docker-образа $IMAGE_NAME:$IMAGE_TAG"
     - cd manager
     - docker build -t $IMAGE_NAME:$IMAGE_TAG .
     - docker push $IMAGE_NAME:$IMAGE_TAG
   only:
-    - main # Запускать только при пуше в основную ветку
+    - main
 
-# --- ЭТАП 2: ОБНОВЛЕНИЕ YAML И ГИТОПС ---
+# --- ЭТАП 2: ОБНОВЛЕНИЕ YAML В GIT ---
 update-k8s-manifest:
   stage: update-manifest
-  image: alpine:latest
-  before_script:
-    - apk add --no-cache git sed
-    # Настройка git для пуша от имени системы
+  tags:
+    - local-wsl # Эту задачу тоже выполняем на твоем ПК
+  script:
+    - echo "Обновление тега в k8s/manager.yaml на $IMAGE_TAG"
+    - sed -i "s|image: $CI_REGISTRY_IMAGE/manager:.*|image: $IMAGE_NAME:$IMAGE_TAG|g" k8s/manager.yaml
+    
+    # Настраиваем Git (если не настроен у пользователя gitlab-runner)
     - git config --global user.email "ci-bot@gitlab.com"
     - git config --global user.name "GitLab CI Bot"
-  script: |
-      sed -i "s|image: $CI_REGISTRY_IMAGE/manager:.*|image: $IMAGE_NAME:$IMAGE_TAG|g" k8s/manager.yaml
-      git add k8s/manager.yaml
-      git commit -m "chore(ci):update manager image to $IMAGE_TAG [skip ci]"
-      git push https://oauth2:${CI_PUSH_TOKEN}@gitlab.com/${CI_PROJECT_PATH}.git HEAD:main
+    
+    - git add k8s/manager.yaml
+    - git commit -m "chore(ci):update manager image to $IMAGE_TAG [skip ci]"
+    
+    # Запускаем пуш с использованием твоего токена CI_PUSH_TOKEN (который в Variables)
+    - git push https://oauth2:${CI_PUSH_TOKEN}@gitlab.com/${CI_PROJECT_PATH}.git HEAD:main
   only:
     - main
   needs:
