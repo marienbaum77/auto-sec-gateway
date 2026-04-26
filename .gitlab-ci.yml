@@ -15,9 +15,7 @@ build-manager:
   services:
     - docker:24.0.5-dind
   script:
-    - echo "Авторизация в реестре..."
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - echo "Сборка Docker-образа: $IMAGE_NAME:$IMAGE_TAG"
     - cd manager
     - docker build -t $IMAGE_NAME:$IMAGE_TAG .
     - docker push $IMAGE_NAME:$IMAGE_TAG
@@ -34,7 +32,6 @@ update-k8s-manifest:
     - git config --global user.email "ci-bot@gitlab.com"
     - git config --global user.name "GitLab CI Bot"
   script:
-    - echo "Обновление тега образа в k8s/manager.yaml на $IMAGE_TAG"
     - sed -i "s|image: $CI_REGISTRY_IMAGE/manager:.*|image: $IMAGE_NAME:$IMAGE_TAG|g" k8s/manager.yaml
     
     # Пушим изменения обратно в репозиторий
