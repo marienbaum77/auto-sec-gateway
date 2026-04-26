@@ -1,59 +1,3 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: xray-config
-  namespace: prod
-  # Аннотация disabled удалена, Flux снова управляет файлом
-data:
-  config.json: |
-    {
-      "log": {"loglevel": "debug"},
-      "api": {
-        "services": ["HandlerService"],
-        "tag": "api"
-      },
-      "inbounds":[
-        {
-          "port": 8443, 
-          "protocol": "vless",
-          "tag": "proxy-in",
-          "settings": {
-            "clients": [],
-            "decryption": "none"
-          },
-          "streamSettings": {
-            "network": "tcp",
-            "security": "reality",
-            "realitySettings": {
-              "show": false,
-              "dest": "www.microsoft.com:443",
-              "xver": 0,
-              "serverNames": ["www.microsoft.com"],
-              "privateKey": "oCyvun1LfZPdMiHz-wTEoKfo5zk7u_FfOyeVztfQFUQ",
-              "shortIds": ["abcdef12"]
-            }
-          }
-        },
-        {
-          "listen": "127.0.0.1",
-          "port": 10085,
-          "protocol": "dokodemo-door",
-          "settings": {"address": "127.0.0.1"},
-          "tag": "api-in"
-        }
-      ],
-      "routing": {
-        "rules":[
-          {
-            "inboundTag": ["api-in"],
-            "outboundTag": "api",
-            "type": "field"
-          }
-        ]
-      },
-      "outbounds":[{"protocol": "freedom"}]
-    }
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -72,17 +16,36 @@ spec:
         app: xray
     spec:
       hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      initContainers:
+      - name: config-templater
+        image: alpine:latest
+        command: ["/bin/sh", "-c"]
+        args:
+          - "apk add --no-cache gettext && envsubst < /template/xray-config.template.json > /etc/xray/config.json"
+        env:
+        - name: XRAY_PRIVATE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: xray-privkey
+        volumeMounts:
+        - name: template-volume
+          mountPath: /template
+        - name: config-volume
+          mountPath: /etc/xray
       containers:
       - name: xray
         image: teddysun/xray:latest
         ports:
         - containerPort: 8443
           hostPort: 8443
-          protocol: TCP
         volumeMounts:
         - name: config-volume
           mountPath: /etc/xray
       volumes:
-      - name: config-volume
+      - name: template-volume
         configMap:
-          name: xray-config
+          name: xray-template-cm
+      - name: config-volume
+        emptyDir: {}

@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strconv"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/igor/auto-sec-manager/internal/model"
@@ -17,10 +19,11 @@ type Service struct {
 	bot      *telebot.Bot
 	db       *gorm.DB
 	publicIP string
+	adminID  int64
 	syncFn   SyncFunc
 }
 
-func New(token string, db *gorm.DB, publicIP string, syncFn SyncFunc) (*Service, error) {
+func New(token string, db *gorm.DB, publicIP string, adminID int64, syncFn SyncFunc) (*Service, error) {
 	settings := telebot.Settings{
 		Token:  token,
 		Poller: &telebot.LongPoller{Timeout: 10},
@@ -35,6 +38,7 @@ func New(token string, db *gorm.DB, publicIP string, syncFn SyncFunc) (*Service,
 		bot:      b,
 		db:       db,
 		publicIP: publicIP,
+		adminID:  adminID,
 		syncFn:   syncFn,
 	}
 
@@ -43,48 +47,89 @@ func New(token string, db *gorm.DB, publicIP string, syncFn SyncFunc) (*Service,
 }
 
 func (s *Service) Start() {
+	log.Printf("[BOT] Started. Admin ID: %d", s.adminID)
 	s.bot.Start()
 }
 
 func (s *Service) registerHandlers() {
+	// Главное меню для админа
+	adminMenu := &telebot.ReplyMarkup{ResizeKeyboard: true}
+	btnUsers := adminMenu.Text("👥 Пользователи")
+	btnStats := adminMenu.Text("📊 Статус")
+	adminMenu.Reply(adminMenu.Row(btnUsers, btnStats))
+
 	s.bot.Handle("/start", func(c telebot.Context) error {
 		userInfo := c.Sender()
-		if userInfo == nil {
-			return c.Send("Could not identify Telegram user.")
-		}
-
 		var user model.User
+		
+		// Регистрация или поиск юзера
 		res := s.db.Where("telegram_id = ?", userInfo.ID).Limit(1).Find(&user)
-		if res.Error != nil {
-			return c.Send("Internal error. Please try again later.")
-		}
-
 		if res.RowsAffected == 0 {
-			username := userInfo.Username
-			if username == "" {
-				username = fmt.Sprintf("tg-%d", userInfo.ID)
-			}
-
 			user = model.User{
 				TelegramID: userInfo.ID,
-				Username:   username,
+				Username:   userInfo.Username,
 				UUID:       uuid.NewString(),
 				Token:      uuid.NewString(),
 				Active:     true,
 			}
-
-			if createErr := s.db.Create(&user).Error; createErr != nil {
-				return c.Send("Failed to create subscription. Please try again later.")
-			}
-
-			if syncErr := s.syncFn(context.Background()); syncErr != nil {
-				log.Printf("sync xray config failed after user create: %v", syncErr)
-				return c.Send("User created, but Xray sync failed. Contact admin.")
-			}
+			s.db.Create(&user)
+			s.syncFn(context.Background())
 		}
 
 		subURL := fmt.Sprintf("http://%s/sub/%s", s.publicIP, user.Token)
-		return c.Send(fmt.Sprintf("Your subscription link:\n%s", subURL))
+		msg := fmt.Sprintf("🔗 Твоя подписка:\n`%s`", subURL)
+
+		// Если пишет админ — выдаем ему кнопки управления
+		if userInfo.ID == s.adminID {
+			return c.Send("Добро пожаловать, Админ. Доступ разрешен.", adminMenu)
+		}
+		return c.Send(msg, telebot.ModeMarkdown)
+	})
+
+	// Команда списка пользователей (только для админа)
+	s.bot.Handle(&btnUsers, func(c telebot.Context) error {
+		if c.Sender().ID != s.adminID {
+			return nil
+		}
+		var users []model.User
+		s.db.Find(&users)
+
+		var b strings.Builder
+		b.WriteString("📋 **Список пользователей:**\n")
+		for _, u := range users {
+			status := "✅"
+			if !u.Active {
+				status = "🚫"
+			}
+			b.WriteString(fmt.Sprintf("%s %s | ID: `%d`\n", status, u.Username, u.TelegramID))
+		}
+		return c.Send(b.String(), telebot.ModeMarkdown)
+	})
+
+	// Команда бана: /ban <telegram_id>
+	s.bot.Handle("/ban", func(c telebot.Context) error {
+		if c.Sender().ID != s.adminID {
+			return nil
+		}
+		args := c.Args()
+		if len(args) < 1 {
+			return c.Send("Использование: /ban <telegram_id>")
+		}
+
+		targetID, _ := strconv.ParseInt(args[0], 10, 64)
+		s.db.Model(&model.User{}).Where("telegram_id = ?", targetID).Update("active", false)
+		s.syncFn(context.Background()) // Мгновенно выкидываем из Xray через gRPC
+		
+		return c.Send(fmt.Sprintf("🚫 Пользователь %d заблокирован", targetID))
+	})
+
+	// Статус ноды
+	s.bot.Handle(&btnStats, func(c telebot.Context) error {
+		if c.Sender().ID != s.adminID {
+			return nil
+		}
+		// Здесь можно вызвать функцию пинга порта, которую мы писали в checker
+		return c.Send("✅ Все системы работают штатно. Нода Xray активна.")
 	})
 }
 

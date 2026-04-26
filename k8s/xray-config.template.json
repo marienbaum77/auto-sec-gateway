@@ -1,0 +1,32 @@
+{
+  "log": {"loglevel": "debug"},
+  "api": {"services": ["HandlerService"], "tag": "api"},
+  "inbounds":[
+    {
+      "port": 8443,
+      "protocol": "vless",
+      "tag": "proxy-in",
+      "settings": {"clients": [], "decryption": "none"},
+      "streamSettings": {
+        "network": "tcp",
+        "security": "reality",
+        "realitySettings": {
+          "show": false,
+          "dest": "dl.google.com:443",
+          "xver": 0,
+          "serverNames": ["dl.google.com"],
+          "privateKey": "${XRAY_PRIVATE_KEY}", 
+          "shortIds": ["abcdef12"]
+        }
+      }
+    },
+    {
+      "listen": "127.0.0.1", "port": 10085, "protocol": "dokodemo-door", "tag": "api-in"
+    }
+  ],
+  "outbounds": [{"protocol": "freedom", "tag": "direct"}],
+  "routing": {
+    "domainStrategy": "IPIfNonMatch",
+    "rules":[{"type": "field", "inboundTag": ["api-in"], "outboundTag": "api"}]
+  }
+}

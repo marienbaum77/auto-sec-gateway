@@ -8,3 +8,9 @@ resources:
   - manager.yaml      # Деплой твоей программы на Go (менеджер)
   - postgres.yaml     # Деплой PostgreSQL для хранения данных
   - manager-config.yaml # ConfigMap с настройками для менеджера
+
+configMapGenerator:
+  - name: xray-template-cm
+    namespace: prod
+    files:
+      - xray-config.template.json
