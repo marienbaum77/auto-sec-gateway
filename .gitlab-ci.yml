@@ -25,20 +25,17 @@ build-manager:
 update-k8s-manifest:
   stage: update-manifest
   tags:
-    - local-wsl # Эту задачу тоже выполняем на твоем ПК
-  script:
-    - echo "Обновление тега в k8s/manager.yaml на $IMAGE_TAG"
-    - sed -i "s|image: $CI_REGISTRY_IMAGE/manager:.*|image: $IMAGE_NAME:$IMAGE_TAG|g" k8s/manager.yaml
+    - local-wsl
+  script: |
+    echo "Обновление тега в k8s/manager.yaml на $IMAGE_TAG"
+    sed -i "s|image: $CI_REGISTRY_IMAGE/manager:.*|image: $IMAGE_NAME:$IMAGE_TAG|g" k8s/manager.yaml
     
-    # Настраиваем Git (если не настроен у пользователя gitlab-runner)
-    - git config --global user.email "ci-bot@gitlab.com"
-    - git config --global user.name "GitLab CI Bot"
+    git config --global user.email "ci-bot@gitlab.com"
+    git config --global user.name "GitLab CI Bot"
     
-    - git add k8s/manager.yaml
-    - git commit -m "chore(ci):update manager image to $IMAGE_TAG [skip ci]"
-    
-    # Запускаем пуш с использованием твоего токена CI_PUSH_TOKEN (который в Variables)
-    - git push https://oauth2:${CI_PUSH_TOKEN}@gitlab.com/${CI_PROJECT_PATH}.git HEAD:main
+    git add k8s/manager.yaml
+    git commit -m "chore(ci):update manager image to $IMAGE_TAG [skip ci]"
+    git push https://oauth2:${CI_PUSH_TOKEN}@gitlab.com/${CI_PROJECT_PATH}.git HEAD:main
   only:
     - main
   needs:
