@@ -61,8 +61,7 @@ func (s *Service) registerHandlers() {
 	s.bot.Handle("/start", func(c telebot.Context) error {
 		userInfo := c.Sender()
 		var user model.User
-
-		// Регистрация или поиск юзера
+		
 		res := s.db.Where("telegram_id = ?", userInfo.ID).Limit(1).Find(&user)
 		if res.RowsAffected == 0 {
 			user = model.User{
@@ -77,12 +76,14 @@ func (s *Service) registerHandlers() {
 		}
 
 		subURL := fmt.Sprintf("http://%s/sub/%s", s.publicIP, user.Token)
-		msg := fmt.Sprintf("🔗 Твоя подписка:\n`%s`", subURL)
+		msg := fmt.Sprintf("✅ Доступ разрешен!\n\n🔗 Твоя ссылка на подписку:\n`%s`", subURL)
 
-		// Если пишет админ — выдаем ему кнопки управления
+		// ИСПРАВЛЕНИЕ: Сначала отправляем ссылку, а если админ - добавляем меню
 		if userInfo.ID == s.adminID {
-			return c.Send("Добро пожаловать, Админ. Доступ разрешен.", adminMenu)
+			c.Send(msg, telebot.ModeMarkdown)
+			return c.Send("🛠 Вы вошли как администратор. Используйте кнопки ниже для управления.", adminMenu)
 		}
+
 		return c.Send(msg, telebot.ModeMarkdown)
 	})
 
