@@ -22,7 +22,7 @@ spec:
       dnsPolicy: ClusterFirstWithHostNet
       containers:
       - name: manager
-        image: registry.gitlab.com/i.rusakov7887/auto-sec-gateway/manager:2c9f6bb-1776367809
+        image: ghcr.io/marienbaum77/auto-sec-gateway/manager:5ad04bdfd82a3080158ce65d03c5f4dffcf83cfd
         ports:
         - containerPort: 8080
         env:
