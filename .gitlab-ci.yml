@@ -10,7 +10,7 @@ variables:
 build-manager:
   stage: build
   tags:
-    - local-wsl # Указываем GitLab'у отправить эту задачу на твой ПК
+    - local-wsl
   script:
     - echo "Авторизация в реестре..."
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
