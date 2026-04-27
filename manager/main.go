@@ -10,22 +10,22 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/igor/auto-sec-manager/internal/api"
-	"github.com/igor/auto-sec-manager/internal/bot"
-	"github.com/igor/auto-sec-manager/internal/checker"
-	"github.com/igor/auto-sec-manager/internal/model"
-	"github.com/igor/auto-sec-manager/internal/xray"
+	"github.com/marienbaum77/auto-sec-manager/internal/api"
+	"github.com/marienbaum77/auto-sec-manager/internal/bot"
+	"github.com/marienbaum77/auto-sec-manager/internal/checker"
+	"github.com/marienbaum77/auto-sec-manager/internal/model"
+	"github.com/marienbaum77/auto-sec-manager/internal/xray"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
 var (
-	db             *gorm.DB
-	publicIP       string
-	xrayPort       int
-	xrayPublicKey  string
-	shortID        string
-	nodeAlive      atomic.Bool
+	db            *gorm.DB
+	publicIP      string
+	xrayPort      int
+	xrayPublicKey string
+	shortID       string
+	nodeAlive     atomic.Bool
 )
 
 // syncXray — сердце системы. Выгружает пользователей из БД в память Xray по gRPC.
@@ -88,7 +88,7 @@ func getEnv(key, fallback string) string {
 func monitorNode(adminID int64, tgBot *bot.Service) {
 	target := getEnv("XRAY_ADDR", "127.0.0.1:8443")
 	notifiedDown := false
-	wasDown := false 
+	wasDown := false
 
 	for {
 		_, err := checker.CheckPort(target, 5*time.Second)
@@ -101,7 +101,7 @@ func monitorNode(adminID int64, tgBot *bot.Service) {
 			}
 		} else {
 			nodeAlive.Store(true)
-			
+
 			// Если узел только что восстановился — возвращаем пользователей в память
 			if wasDown {
 				log.Println("[RECOVERY] Узел ожил. Восстанавливаю состояние пользователей...")

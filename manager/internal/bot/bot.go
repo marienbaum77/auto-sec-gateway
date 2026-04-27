@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/igor/auto-sec-manager/internal/model"
+	"github.com/marienbaum77/auto-sec-manager/internal/model"
 	"gopkg.in/telebot.v3"
 	"gorm.io/gorm"
 )
@@ -61,7 +61,7 @@ func (s *Service) registerHandlers() {
 	s.bot.Handle("/start", func(c telebot.Context) error {
 		userInfo := c.Sender()
 		var user model.User
-		
+
 		// Регистрация или поиск юзера
 		res := s.db.Where("telegram_id = ?", userInfo.ID).Limit(1).Find(&user)
 		if res.RowsAffected == 0 {
@@ -119,7 +119,7 @@ func (s *Service) registerHandlers() {
 		targetID, _ := strconv.ParseInt(args[0], 10, 64)
 		s.db.Model(&model.User{}).Where("telegram_id = ?", targetID).Update("active", false)
 		s.syncFn(context.Background()) // Мгновенно выкидываем из Xray через gRPC
-		
+
 		return c.Send(fmt.Sprintf("🚫 Пользователь %d заблокирован", targetID))
 	})
 

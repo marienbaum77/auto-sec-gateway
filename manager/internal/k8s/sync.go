@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/igor/auto-sec-manager/internal/model"
+	"github.com/marienbaum77/auto-sec-manager/internal/model"
 	"gorm.io/gorm"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"

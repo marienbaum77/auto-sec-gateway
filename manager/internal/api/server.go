@@ -6,7 +6,7 @@ import (
 	"sync/atomic"
 
 	"github.com/gin-gonic/gin"
-	"github.com/igor/auto-sec-manager/internal/model"
+	"github.com/marienbaum77/auto-sec-manager/internal/model"
 	"gorm.io/gorm"
 )
 

@@ -1,4 +1,4 @@
-module github.com/igor/auto-sec-manager
+module github.com/marienbaum77/auto-sec-manager
 
 go 1.26
 
