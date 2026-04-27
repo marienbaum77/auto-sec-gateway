@@ -56,3 +56,5 @@ key.json
 *.zip
 *.md
 auto-sec-gateway
+
+eso-auth-key.json

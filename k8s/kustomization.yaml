@@ -8,6 +8,9 @@ resources:
   - manager.yaml      # Деплой твоей программы на Go (менеджер)
   - postgres.yaml     # Деплой PostgreSQL для хранения данных
   - manager-config.yaml # ConfigMap с настройками для менеджера
+  - secret-store.yaml # Store для хранения секретов
+  - external-secrets.yaml # External Secrets для интеграции с Yandex Lockbox
+
 
 configMapGenerator:
   - name: xray-template-cm

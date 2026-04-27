@@ -32,6 +32,12 @@
         - { name: 'net.ipv4.ip_forward', value: '1 ;' }       # ВКЛЮЧАЕМ форвардинг пакетов (КРИТИЧНО для прокси/VPN)
         - { name: 'fs.file-max', value: '100000' }            # Увеличиваем лимит открытых файлов
         - { name: 'net.ipv4.tcp_tw_reuse', value: '1' }       # Быстрое переиспользование портов
+    - name: Disable password authentication for SSH
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?PasswordAuthentication'
+        line: 'PasswordAuthentication no'
+      notify: Restart SSH
 
     - name: Установка Docker (движок для наших приложений)
       # Мы используем официальный скрипт установки Docker
@@ -44,3 +50,8 @@
         name: docker
         state: started
         enabled: yes
+  handlers:
+        - name: Restart SSH
+          service:
+            name: ssh
+            state: restarted
