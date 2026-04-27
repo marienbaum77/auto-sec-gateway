@@ -3,8 +3,7 @@ name: Deploy Manager
 on:
   push:
     branches: [ "main" ]
-    paths:
-      - 'manager/**'
+  workflow_dispatch:
 
 jobs:
   build-and-push:
@@ -26,7 +25,6 @@ jobs:
 
       - name: Build and push Docker image
         run: |
-          # Переводим имя пользователя в нижний регистр для Docker
           REPO_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
           TAG=${{ github.sha }}
           IMAGE_NAME=ghcr.io/$REPO_OWNER/auto-sec-gateway/manager:$TAG
@@ -34,7 +32,6 @@ jobs:
           cd manager
           docker build -t $IMAGE_NAME .
           docker push $IMAGE_NAME
-          echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
 
       - name: Update Kubernetes manifest
         run: |
@@ -42,8 +39,8 @@ jobs:
           REPO_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
           IMAGE_NAME=ghcr.io/$REPO_OWNER/auto-sec-gateway/manager:$TAG
           
-          # Меняем старый образ на новый в YAML
-          sed -i "s|image: .*manager:.*|image: $IMAGE_NAME|g" k8s/manager.yaml
+          sed -i "s|image: ghcr.io.*manager:.*|image: $IMAGE_NAME|g" k8s/manager.yaml
+          sed -i "s|image: registry.gitlab.com.*manager:.*|image: $IMAGE_NAME|g" k8s/manager.yaml
 
       - name: Commit and push changes
         uses: stefanzweifel/git-auto-commit-action@v5
