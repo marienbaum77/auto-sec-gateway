@@ -1,5 +1,5 @@
 # Этап 1: Сборка (используем легкий образ Go)
-FROM golang:1.25.5-alpine AS builder
+FROM golang:1.26-alpine AS builder
 WORKDIR /app
 # Копируем файлы зависимостей
 COPY go.mod go.sum ./
