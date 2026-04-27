@@ -10,11 +10,11 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/marienbaum77/auto-sec-manager/internal/api"
-	"github.com/marienbaum77/auto-sec-manager/internal/bot"
-	"github.com/marienbaum77/auto-sec-manager/internal/checker"
-	"github.com/marienbaum77/auto-sec-manager/internal/model"
-	"github.com/marienbaum77/auto-sec-manager/internal/xray"
+	"github.com/marienbaum77/auto-sec-gateway/internal/api"
+	"github.com/marienbaum77/auto-sec-gateway/internal/bot"
+	"github.com/marienbaum77/auto-sec-gateway/internal/checker"
+	"github.com/marienbaum77/auto-sec-gateway/internal/model"
+	"github.com/marienbaum77/auto-sec-gateway/internal/xray"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )

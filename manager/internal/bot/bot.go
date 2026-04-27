@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/marienbaum77/auto-sec-manager/internal/model"
+	"github.com/marienbaum77/auto-sec-gateway/internal/model"
 	"gopkg.in/telebot.v3"
 	"gorm.io/gorm"
 )
