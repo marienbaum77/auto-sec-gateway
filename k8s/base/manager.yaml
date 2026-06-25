@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: manager
+  namespace: prod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: manager
+  template:
+    metadata:
+      labels:
+        app: manager
+    spec:
+      containers:
+      - name: manager
+        image: ghcr.io/marienbaum77/auto-sec-gateway/manager:bd92ce2a947c52b7b53b1f09d7bbc34544bcf088
+        ports:
+        - containerPort: 8080
+        env:
+        - name: DB_PASS_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: postgres-password
+        - name: DATABASE_URL
+          value: "host=postgres-service.prod.svc user=$(POSTGRES_USER) password=$(DB_PASS_SECRET) dbname=$(POSTGRES_DB) port=5432 sslmode=disable"
+        
+        - name: TELEGRAM_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: telegram-secret
+              key: TELEGRAM_TOKEN
+        - name: SUBSCRIPTION_BASE_URL
+          value: "https://${DOMAIN}:8443"
+        - name: PUBLIC_IP
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: PUBLIC_IP
+        - name: HYSTERIA_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: hy-password
+        - name: POSTGRES_USER
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: POSTGRES_USER
+        - name: POSTGRES_DB
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: POSTGRES_DB
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: manager-service
+  namespace: prod
+spec:
+  selector:
+    app: manager
+  ports:
+  - port: 80
+    targetPort: 8080

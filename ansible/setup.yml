@@ -1,0 +1,57 @@
+---
+- name: Базовая настройка
+  hosts: edge
+  become: true  
+  tasks:
+    - name: Обновление списка пакетов и апгрейд системы
+      apt:
+        update_cache: yes
+        upgrade: dist
+        autoremove: yes
+
+    - name: Установка необходимых системных утилит
+      apt:
+        name:
+          - curl
+          - git
+          - htop
+          - ufw
+          - python3-pip
+        state: present
+    - name: Тюнинг сетевого ядра Linux (sysctl)
+      sysctl:
+        name: "{{ item.name }}"
+        value: "{{ item.value }}"
+        state: present
+        reload: yes
+      loop:
+        - { name: 'net.core.default_qdisc', value: 'fq' }
+        - { name: 'net.ipv4.tcp_congestion_control', value: 'bbr' }
+        - { name: 'net.core.rmem_max', value: '16777216' }
+        - { name: 'net.core.wmem_max', value: '16777216' }
+        - { name: 'net.ipv4.tcp_rmem', value: '4096 87380 16777216' }
+        - { name: 'net.ipv4.tcp_wmem', value: '4096 65536 16777216' }
+        - { name: 'net.ipv4.tcp_fastopen', value: '3' }
+        - { name: 'net.ipv4.ip_forward', value: '1' }
+        - { name: 'net.ipv4.tcp_slow_start_after_idle', value: '0' }
+    - name: Отключить проверку пароля для SSH
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?PasswordAuthentication'
+        line: 'PasswordAuthentication no'
+      notify: Restart SSH
+
+    - name: Установка Docker 
+      shell: curl -fsSL https://get.docker.com | sh
+      args:
+        creates: /usr/bin/docker  
+    - name: Запуск и включение Docker в автозагрузку
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+  handlers:
+        - name: Restart SSH
+          service:
+            name: ssh
+            state: restarted

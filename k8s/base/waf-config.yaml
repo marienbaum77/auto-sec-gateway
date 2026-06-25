@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ingress-nginx-controller
+  namespace: ingress-nginx
+data:
+  enable-modsecurity: "true"
+  enable-owasp-modsecurity-crs: "true"
+  http-snippet: |
+    modsecurity_rules "
+      SecRuleEngine On
+      SecAuditEngine RelevantOnly
+      SecAuditLog /var/log/nginx/modsec_audit.log
+    ";

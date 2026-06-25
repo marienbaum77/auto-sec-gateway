@@ -1,0 +1,16 @@
+listen: :443
+tls:
+  cert: /certs/tls.crt
+  key: /certs/tls.key
+auth:
+  type: password
+  password: "${HYSTERIA_PASSWORD}"
+masquerade:
+  type: proxy
+  proxy:
+    url: https://www.microsoft.com/
+    rewriteHost: true
+obfs:
+  type: salamander
+  salamander:
+    password: "${HYSTERIA_PASSWORD}"

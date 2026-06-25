@@ -1,0 +1,30 @@
+---
+- name: Установка K3s
+  hosts: edge
+  become: true
+
+  tasks:
+    - name: Установка K3s
+      shell: |
+        curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--write-kubeconfig-mode 644 --disable traefik --tls-san {{ ansible_host }}" sh -
+
+    - name: Ожидание запуска узла (Node)
+      command: k3s kubectl get nodes
+      register: nodes_status
+      until: '" Ready " in nodes_status.stdout'
+      retries: 20
+      delay: 5
+      
+    - name: Внедрение мастер-ключа SOPS в кластер
+      shell: |
+        export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+        kubectl create ns flux-system || true
+        kubectl create secret generic sops-age \
+          --namespace=flux-system \
+          --from-literal=age.agekey='{{ lookup("file", "~/.config/sops/age/keys.txt") }}'
+
+    - name: Получение Kubeconfig
+      fetch:
+        src: /etc/rancher/k3s/k3s.yaml
+        dest: ~/.kube/config-remote
+        flat: yes

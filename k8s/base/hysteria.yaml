@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hysteria
+  namespace: prod
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: hysteria
+  template:
+    metadata:
+      labels:
+        app: hysteria
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      initContainers:
+      - name: config-templater
+        image: bhgedigital/envsubst:latest
+        command: ["/bin/sh", "-c"]
+        args:
+          - "envsubst < /template/config.yaml > /etc/hysteria/config.yaml"
+        env:
+        - name: HYSTERIA_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: hy-password
+        volumeMounts:
+        - name: template-volume
+          mountPath: /template
+        - name: config-volume
+          mountPath: /etc/hysteria
+      containers:
+      - name: hysteria
+        image: tobyxdd/hysteria:latest
+        args: ["server", "-c", "/etc/hysteria/config.yaml"]
+        ports:
+        - containerPort: 443
+          protocol: UDP
+        securityContext:
+          privileged: true 
+          capabilities:
+            add: ["NET_ADMIN"]
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/hysteria
+        - name: certs-volume
+          mountPath: /certs
+          readOnly: true
+      volumes:
+      - name: template-volume
+        configMap:
+          name: hysteria-template-cm
+      - name: config-volume
+        emptyDir: {}
+      - name: certs-volume
+        secret:
+          secretName: api-tls-cert
