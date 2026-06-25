@@ -61,3 +61,4 @@ key.json
 *.md
 auto-sec-gateway
 eso-auth-key.json
+.env

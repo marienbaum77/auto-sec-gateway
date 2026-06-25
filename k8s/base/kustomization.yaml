@@ -9,10 +9,14 @@ resources:
   - manager.yaml
   - manager-rbac.yaml
   - postgres.yaml
-  - manager-config.yaml
 
 configMapGenerator:
   - name: hysteria-template-cm
     namespace: prod
     files:
       - config.yaml=hysteria-config.template.yaml
+
+  - name: app-config
+    namespace: prod
+    envs:
+      - config.env

@@ -14,3 +14,10 @@ spec:
     provider: sops
     secretRef:
       name: sops-age
+  postBuild:
+    substitute:
+      DOMAIN: "auto-sec-gateway.duckdns.org"
+      PUBLIC_IP: "31.76.96.91"
+      EMAIL: "i.rusakov7887@gmail.com"
+      POSTGRES_USER: "manager"
+      POSTGRES_DB: "manager"

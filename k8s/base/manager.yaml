@@ -24,26 +24,6 @@ spec:
             secretKeyRef:
               name: app-secrets
               key: postgres-password
-        - name: DATABASE_URL
-          value: "host=postgres-service.prod.svc user=$(POSTGRES_USER) password=$(DB_PASS_SECRET) dbname=$(POSTGRES_DB) port=5432 sslmode=disable"
-        
-        - name: TELEGRAM_TOKEN
-          valueFrom:
-            secretKeyRef:
-              name: telegram-secret
-              key: TELEGRAM_TOKEN
-        - name: SUBSCRIPTION_BASE_URL
-          value: "https://${DOMAIN}:8443"
-        - name: PUBLIC_IP
-          valueFrom:
-            configMapKeyRef:
-              name: app-config
-              key: PUBLIC_IP
-        - name: HYSTERIA_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: app-secrets
-              key: hy-password
         - name: POSTGRES_USER
           valueFrom:
             configMapKeyRef:
@@ -54,6 +34,32 @@ spec:
             configMapKeyRef:
               name: app-config
               key: POSTGRES_DB
+        - name: PUBLIC_IP
+          value: "${PUBLIC_IP}"
+        - name: DOMAIN
+          value: "${DOMAIN}"
+              
+        - name: DATABASE_URL
+          value: "host=postgres-service.prod.svc user=$(POSTGRES_USER) password=$(DB_PASS_SECRET) dbname=$(POSTGRES_DB) port=5432 sslmode=disable"
+        
+        - name: SUBSCRIPTION_BASE_URL
+          value: "https://$(DOMAIN):8443"
+
+        - name: TELEGRAM_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: telegram-secret
+              key: TELEGRAM_TOKEN
+        - name: ADMIN_ID
+          valueFrom:
+            secretKeyRef:
+              name: telegram-secret
+              key: ADMIN_ID
+        - name: HYSTERIA_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: hy-password
 ---
 apiVersion: v1
 kind: Service
