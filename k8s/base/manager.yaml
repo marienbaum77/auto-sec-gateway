@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: manager
-        image: ghcr.io/marienbaum77/auto-sec-gateway/manager:58455b7c2b7352a98b9738b7e27d720a66f75d1a
+        image: ghcr.io/marienbaum77/auto-sec-gateway/manager:ae4541bb447e5b6255581a9efc1d1da017c23c30
         ports:
         - containerPort: 8080
         env:
